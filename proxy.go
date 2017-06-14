@@ -9,10 +9,13 @@ import (
 )
 
 func main() {
+	port := 8080
 	proxiedBaseUrl := os.Args[1]
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		proxiedUrl := proxiedBaseUrl + r.URL.Path
+
+		fmt.Printf("%s request to %s -> %s \n", r.Method, r.URL.Path, proxiedUrl)
 
 		resp, _ := http.Get(proxiedUrl)
 		for name, values := range resp.Header {
@@ -26,5 +29,7 @@ func main() {
 		fmt.Fprintf(w, "%s", body)
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Printf("Proxying for %s on http://localhost:%d \n", proxiedBaseUrl, port)
+
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
