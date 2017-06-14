@@ -9,9 +9,11 @@ import (
 )
 
 func main() {
-	proxiedUrl := os.Args[1]
+	proxiedBaseUrl := os.Args[1]
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		proxiedUrl := proxiedBaseUrl + r.URL.Path
+
 		resp, _ := http.Get(proxiedUrl)
 		for name, values := range resp.Header {
 			for _, value := range values {
