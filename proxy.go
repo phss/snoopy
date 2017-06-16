@@ -32,8 +32,10 @@ func printResponse(resp *http.Response) {
 	//fmt.Println(string(body))
 }
 
-func makeProxyRequest(proxiedUrl string) *http.Response {
-	resp, _ := http.Get(proxiedUrl)
+func makeProxyRequest(proxiedUrl string, r *http.Request) *http.Response {
+	client := http.Client{}
+	proxyRequest, _ := http.NewRequest(r.Method, proxiedUrl, r.Body)
+	resp, _ := client.Do(proxyRequest)
 	return resp
 }
 
@@ -56,7 +58,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		proxiedUrl := proxiedBaseUrl + r.URL.Path
 		printRequest(proxiedUrl, r)
-		resp := makeProxyRequest(proxiedUrl)
+		resp := makeProxyRequest(proxiedUrl, r)
 		printResponse(resp)
 		returnProxyResponse(resp, w)
 	})
