@@ -18,18 +18,23 @@ func printRequest(proxiedUrl string, r *http.Request) {
 			fmt.Printf("%s: %s\n", color.CyanString(name), color.YellowString(value))
 		}
 	}
+	fmt.Printf("%s:\n", color.CyanString("Body"))
+	body, _ := ioutil.ReadAll(r.Body)
+	fmt.Println(string(body))
 	fmt.Println("")
 }
 
 func printResponse(resp *http.Response) {
 	color.Blue("Response")
+	fmt.Printf("%s: %s\n", color.CyanString("Status"), color.YellowString(resp.Status))
 	for name, values := range resp.Header {
 		for _, value := range values {
 			fmt.Printf("%s: %s\n", color.CyanString(name), color.YellowString(value))
 		}
 	}
-	//fmt.Println("")
-	//fmt.Println(string(body))
+	fmt.Printf("%s:\n", color.CyanString("Body"))
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(body))
 }
 
 func makeProxyRequest(proxiedUrl string, r *http.Request) *http.Response {
