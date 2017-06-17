@@ -58,7 +58,7 @@ func returnProxyResponse(resp *http.Response, w http.ResponseWriter) {
 }
 
 func proxy(port int, proxiedBaseUrl string) {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		proxiedUrl := proxiedBaseUrl + r.URL.Path
 		printRequest(proxiedUrl, r)
 		resp := makeProxyRequest(proxiedUrl, r)
@@ -68,15 +68,23 @@ func proxy(port int, proxiedBaseUrl string) {
 
 	fmt.Printf("Proxying for %s on http://localhost:%d \n", proxiedBaseUrl, port)
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	server := http.Server{
+		Addr:    fmt.Sprintf(":%d", port),
+		Handler: handler,
+	}
+	log.Fatal(server.ListenAndServe())
 }
 
 func main() {
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 
 	go func() {
 		proxy(8080, os.Args[1])
+		wg.Done()
+	}()
+	go func() {
+		proxy(8081, os.Args[2])
 		wg.Done()
 	}()
 
