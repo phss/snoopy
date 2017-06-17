@@ -25,7 +25,7 @@ func printRequest(proxiedUrl string, r *http.Request) {
 	fmt.Println("")
 }
 
-func printResponse(resp *http.Response) {
+func printResponse(resp *http.Response, body string) {
 	color.Blue("Response")
 	fmt.Printf("%s: %s\n", color.CyanString("Status"), color.YellowString(resp.Status))
 	for name, values := range resp.Header {
@@ -34,18 +34,18 @@ func printResponse(resp *http.Response) {
 		}
 	}
 	fmt.Printf("%s:\n", color.CyanString("Body"))
-	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	fmt.Println(body)
 }
 
-func makeProxyRequest(proxiedUrl string, r *http.Request) *http.Response {
+func makeProxyRequest(proxiedUrl string, r *http.Request) (*http.Response, string) {
 	client := http.Client{}
 	proxyRequest, _ := http.NewRequest(r.Method, proxiedUrl, r.Body)
 	resp, _ := client.Do(proxyRequest)
-	return resp
+	body, _ := ioutil.ReadAll(resp.Body)
+	return resp, string(body)
 }
 
-func returnProxyResponse(resp *http.Response, w http.ResponseWriter) {
+func returnProxyResponse(resp *http.Response, body string, w http.ResponseWriter) {
 	for name, values := range resp.Header {
 		for _, value := range values {
 			w.Header().Add(name, value)
@@ -53,7 +53,6 @@ func returnProxyResponse(resp *http.Response, w http.ResponseWriter) {
 	}
 
 	defer resp.Body.Close()
-	body, _ := ioutil.ReadAll(resp.Body)
 	fmt.Fprintf(w, "%s", body)
 }
 
@@ -61,9 +60,9 @@ func proxy(port int, proxiedBaseUrl string) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		proxiedUrl := proxiedBaseUrl + r.URL.Path
 		printRequest(proxiedUrl, r)
-		resp := makeProxyRequest(proxiedUrl, r)
-		printResponse(resp)
-		returnProxyResponse(resp, w)
+		resp, body := makeProxyRequest(proxiedUrl, r)
+		printResponse(resp, body)
+		returnProxyResponse(resp, body, w)
 	})
 
 	fmt.Printf("Proxying for %s on http://localhost:%d \n", proxiedBaseUrl, port)
