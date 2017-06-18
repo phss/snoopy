@@ -46,7 +46,7 @@ func proxy(port int, proxiedBaseUrl string, showBody bool) {
 }
 
 func main() {
-	config := parseOptions()
+	config := parseConfigOptions()
 	var wg sync.WaitGroup
 	wg.Add(len(config.ProxyConfigs))
 
