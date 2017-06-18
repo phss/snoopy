@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fatih/color"
+	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -79,37 +80,55 @@ func proxy(port int, proxiedBaseUrl string, showBody bool) {
 }
 
 type Config struct {
-	showBody     bool
-	proxyConfigs []ProxyConfig
+	ShowBody     bool          `yaml:"showBody"`
+	ProxyConfigs []ProxyConfig `yaml:"proxyConfigs"`
 }
 
 type ProxyConfig struct {
-	port int
-	url  string
+	Port int    `yaml:"port"`
+	Url  string `yaml:"url"`
 }
 
 func parseOptions() Config {
 	showBody := flag.Bool("showBody", false, "shows the request and response bodies")
 	port := flag.Int("port", 8080, "proxy port")
 	url := flag.String("url", "http://www.example.com", "url")
+	file := flag.String("file", "none", "config file")
+
 	flag.Parse()
 
+	singleProxyConfig := ProxyConfig{
+		Port: *port,
+		Url:  *url,
+	}
+
+	if *file != "none" {
+		yamlFile, err := ioutil.ReadFile(*file)
+		if err != nil {
+			panic(err)
+		}
+		var config Config
+		err = yaml.Unmarshal(yamlFile, &config)
+		if err != nil {
+			panic(err)
+		}
+		return config
+	}
+
 	return Config{
-		showBody: *showBody,
-		proxyConfigs: []ProxyConfig{
-			ProxyConfig{port: *port, url: *url},
-		},
+		ShowBody:     *showBody,
+		ProxyConfigs: []ProxyConfig{singleProxyConfig},
 	}
 }
 
 func main() {
 	config := parseOptions()
 	var wg sync.WaitGroup
-	wg.Add(len(config.proxyConfigs))
+	wg.Add(len(config.ProxyConfigs))
 
-	for _, proxyConfig := range config.proxyConfigs {
+	for _, proxyConfig := range config.ProxyConfigs {
 		go func(pc ProxyConfig) {
-			proxy(pc.port, pc.url, config.showBody)
+			proxy(pc.Port, pc.Url, config.ShowBody)
 			wg.Done()
 		}(proxyConfig)
 	}
