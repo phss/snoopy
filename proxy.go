@@ -8,12 +8,36 @@ import (
 	"sync"
 )
 
-func makeProxyRequest(proxiedUrl string, r *http.Request) (*http.Response, string) {
-	client := http.Client{}
-	proxyRequest, _ := http.NewRequest(r.Method, proxiedUrl, r.Body)
-	resp, _ := client.Do(proxyRequest)
-	body, _ := ioutil.ReadAll(resp.Body)
-	return resp, string(body)
+func main() {
+	config := parseConfigOptions()
+
+	var wg sync.WaitGroup
+	wg.Add(len(config.ProxyConfigs))
+
+	for _, proxyConfig := range config.ProxyConfigs {
+		go func(pc ProxyConfig) {
+			proxy(pc, config)
+			wg.Done()
+		}(proxyConfig)
+	}
+
+	wg.Wait()
+}
+
+func proxy(proxyConfig ProxyConfig, config Config) {
+	fmt.Printf("Proxying for %s on http://localhost:%d \n", proxyConfig.Url, proxyConfig.Port)
+
+	server := http.Server{
+		Addr: fmt.Sprintf(":%d", proxyConfig.Port),
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			proxiedUrl := proxyConfig.Url + r.URL.Path
+			printRequest(proxiedUrl, r, config.ShowBody)
+			resp, body := makeProxyRequest(proxiedUrl, r)
+			printResponse(resp, body, config.ShowBody)
+			returnProxyResponse(resp, body, w)
+		}),
+	}
+	log.Fatal(server.ListenAndServe())
 }
 
 func returnProxyResponse(resp *http.Response, body string, w http.ResponseWriter) {
@@ -27,35 +51,10 @@ func returnProxyResponse(resp *http.Response, body string, w http.ResponseWriter
 	fmt.Fprintf(w, "%s", body)
 }
 
-func proxy(port int, proxiedBaseUrl string, showBody bool) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		proxiedUrl := proxiedBaseUrl + r.URL.Path
-		printRequest(proxiedUrl, r, showBody)
-		resp, body := makeProxyRequest(proxiedUrl, r)
-		printResponse(resp, body, showBody)
-		returnProxyResponse(resp, body, w)
-	})
-
-	fmt.Printf("Proxying for %s on http://localhost:%d \n", proxiedBaseUrl, port)
-
-	server := http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: handler,
-	}
-	log.Fatal(server.ListenAndServe())
-}
-
-func main() {
-	config := parseConfigOptions()
-	var wg sync.WaitGroup
-	wg.Add(len(config.ProxyConfigs))
-
-	for _, proxyConfig := range config.ProxyConfigs {
-		go func(pc ProxyConfig) {
-			proxy(pc.Port, pc.Url, config.ShowBody)
-			wg.Done()
-		}(proxyConfig)
-	}
-
-	wg.Wait()
+func makeProxyRequest(proxiedUrl string, r *http.Request) (*http.Response, string) {
+	client := http.Client{}
+	proxyRequest, _ := http.NewRequest(r.Method, proxiedUrl, r.Body)
+	resp, _ := client.Do(proxyRequest)
+	body, _ := ioutil.ReadAll(resp.Body)
+	return resp, string(body)
 }
