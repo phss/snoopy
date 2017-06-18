@@ -78,23 +78,41 @@ func proxy(port int, proxiedBaseUrl string, showBody bool) {
 	log.Fatal(server.ListenAndServe())
 }
 
-func parseOptions() (bool, int, string) {
+type Config struct {
+	showBody     bool
+	proxyConfigs []ProxyConfig
+}
+
+type ProxyConfig struct {
+	port int
+	url  string
+}
+
+func parseOptions() Config {
 	showBody := flag.Bool("showBody", false, "shows the request and response bodies")
 	port := flag.Int("port", 8080, "proxy port")
 	url := flag.String("url", "http://www.example.com", "url")
 	flag.Parse()
-	return *showBody, *port, *url
+
+	return Config{
+		showBody: *showBody,
+		proxyConfigs: []ProxyConfig{
+			ProxyConfig{port: *port, url: *url},
+		},
+	}
 }
 
 func main() {
-	showBody, port, url := parseOptions()
+	config := parseOptions()
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(len(config.proxyConfigs))
 
-	go func() {
-		proxy(port, url, showBody)
-		wg.Done()
-	}()
+	for _, proxyConfig := range config.proxyConfigs {
+		go func(pc ProxyConfig) {
+			proxy(pc.port, pc.url, config.showBody)
+			wg.Done()
+		}(proxyConfig)
+	}
 
 	wg.Wait()
 }
