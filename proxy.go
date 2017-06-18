@@ -1,16 +1,16 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/fatih/color"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"sync"
 )
 
-func printRequest(proxiedUrl string, r *http.Request) {
+func printRequest(proxiedUrl string, r *http.Request, showBody bool) {
 	fmt.Println("---")
 	color.Blue("Request")
 	color.Green("%s %s -> %s", r.Method, r.URL.Path, proxiedUrl)
@@ -19,13 +19,15 @@ func printRequest(proxiedUrl string, r *http.Request) {
 			fmt.Printf("%s: %s\n", color.CyanString(name), color.YellowString(value))
 		}
 	}
-	fmt.Printf("%s:\n", color.CyanString("Body"))
-	body, _ := ioutil.ReadAll(r.Body)
-	fmt.Println(string(body))
+	if showBody {
+		fmt.Printf("%s:\n", color.CyanString("Body"))
+		body, _ := ioutil.ReadAll(r.Body)
+		fmt.Println(string(body))
+	}
 	fmt.Println("")
 }
 
-func printResponse(resp *http.Response, body string) {
+func printResponse(resp *http.Response, body string, showBody bool) {
 	color.Blue("Response")
 	fmt.Printf("%s: %s\n", color.CyanString("Status"), color.YellowString(resp.Status))
 	for name, values := range resp.Header {
@@ -33,8 +35,10 @@ func printResponse(resp *http.Response, body string) {
 			fmt.Printf("%s: %s\n", color.CyanString(name), color.YellowString(value))
 		}
 	}
-	fmt.Printf("%s:\n", color.CyanString("Body"))
-	fmt.Println(body)
+	if showBody {
+		fmt.Printf("%s:\n", color.CyanString("Body"))
+		fmt.Println(body)
+	}
 }
 
 func makeProxyRequest(proxiedUrl string, r *http.Request) (*http.Response, string) {
@@ -56,12 +60,12 @@ func returnProxyResponse(resp *http.Response, body string, w http.ResponseWriter
 	fmt.Fprintf(w, "%s", body)
 }
 
-func proxy(port int, proxiedBaseUrl string) {
+func proxy(port int, proxiedBaseUrl string, showBody bool) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		proxiedUrl := proxiedBaseUrl + r.URL.Path
-		printRequest(proxiedUrl, r)
+		printRequest(proxiedUrl, r, showBody)
 		resp, body := makeProxyRequest(proxiedUrl, r)
-		printResponse(resp, body)
+		printResponse(resp, body, showBody)
 		returnProxyResponse(resp, body, w)
 	})
 
@@ -74,16 +78,21 @@ func proxy(port int, proxiedBaseUrl string) {
 	log.Fatal(server.ListenAndServe())
 }
 
+func parseOptions() (bool, int, string) {
+	showBody := flag.Bool("showBody", false, "shows the request and response bodies")
+	port := flag.Int("port", 8080, "proxy port")
+	url := flag.String("url", "http://www.example.com", "url")
+	flag.Parse()
+	return *showBody, *port, *url
+}
+
 func main() {
+	showBody, port, url := parseOptions()
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
 	go func() {
-		proxy(8080, os.Args[1])
-		wg.Done()
-	}()
-	go func() {
-		proxy(8081, os.Args[2])
+		proxy(port, url, showBody)
 		wg.Done()
 	}()
 
