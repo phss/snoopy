@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
@@ -32,28 +31,24 @@ func proxy(proxyConfig ProxyConfig, config Config) {
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			proxyRequest := NewProxyRequestFrom(r, proxyConfig.Url)
 			printRequest(proxyRequest, config)
-			resp, body := makeProxyRequest(proxyRequest)
-			printResponse(resp, body, config.ShowBody)
-			returnProxyResponse(resp, body, w)
+			response := makeProxyRequest(proxyRequest)
+			printResponse(response, config)
+			returnProxyResponse(response, w)
 		}),
 	}
 	log.Fatal(server.ListenAndServe())
 }
 
-func returnProxyResponse(resp *http.Response, body string, w http.ResponseWriter) {
-	for name, values := range resp.Header {
-		for _, value := range values {
-			w.Header().Add(name, value)
-		}
+func returnProxyResponse(response ProxyResponse, w http.ResponseWriter) {
+	for _, header := range response.Headers {
+		w.Header().Add(header.Name, header.Value)
 	}
 
-	defer resp.Body.Close()
-	fmt.Fprintf(w, "%s", body)
+	fmt.Fprintf(w, "%s", response.Body)
 }
 
-func makeProxyRequest(request ProxyRequest) (*http.Response, string) {
+func makeProxyRequest(request ProxyRequest) ProxyResponse {
 	client := http.Client{}
 	resp, _ := client.Do(request.NewProxiedHttpRequest())
-	body, _ := ioutil.ReadAll(resp.Body)
-	return resp, string(body)
+	return NewProxyResponseFrom(resp)
 }

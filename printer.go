@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/fatih/color"
-	"net/http"
 )
 
 func printRequest(proxyRequest ProxyRequest, config Config) {
@@ -20,16 +19,14 @@ func printRequest(proxyRequest ProxyRequest, config Config) {
 	fmt.Println("")
 }
 
-func printResponse(resp *http.Response, body string, showBody bool) {
+func printResponse(response ProxyResponse, config Config) {
 	color.Blue("Response")
-	fmt.Printf("%s: %s\n", color.CyanString("Status"), color.YellowString(resp.Status))
-	for name, values := range resp.Header {
-		for _, value := range values {
-			fmt.Printf("%s: %s\n", color.CyanString(name), color.YellowString(value))
-		}
+	fmt.Printf("%s: %s\n", color.CyanString("Status"), color.YellowString(response.Status))
+	for _, header := range response.Headers {
+		fmt.Printf("%s: %s\n", color.CyanString(header.Name), color.YellowString(header.Value))
 	}
-	if showBody {
+	if config.ShowBody {
 		fmt.Printf("%s:\n", color.CyanString("Body"))
-		fmt.Println(body)
+		fmt.Println(string(response.Body))
 	}
 }
