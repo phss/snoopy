@@ -20,9 +20,10 @@ type ProxyRequest struct {
 }
 
 type ProxyResponse struct {
-	Status  string
-	Headers []ProxyHeader
-	Body    []byte
+	Status     string
+	StatusCode int
+	Headers    []ProxyHeader
+	Body       []byte
 }
 
 func NewProxyRequestFrom(httpRequest *http.Request, proxiedHost string) ProxyRequest {
@@ -60,8 +61,9 @@ func NewProxyResponseFrom(httpResponse *http.Response) ProxyResponse {
 		}
 	}
 	return ProxyResponse{
-		Status:  httpResponse.Status,
-		Body:    body,
-		Headers: headers,
+		Status:     httpResponse.Status,
+		StatusCode: httpResponse.StatusCode,
+		Body:       body,
+		Headers:    headers,
 	}
 }

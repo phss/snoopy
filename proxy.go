@@ -44,6 +44,7 @@ func returnProxyResponse(response ProxyResponse, w http.ResponseWriter) {
 		w.Header().Add(header.Name, header.Value)
 	}
 
+	w.WriteHeader(response.StatusCode)
 	fmt.Fprintf(w, "%s", response.Body)
 }
 
