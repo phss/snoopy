@@ -31,6 +31,7 @@ func proxy(proxyConfig ProxyConfig, config Config) {
 		Addr: fmt.Sprintf(":%d", proxyConfig.Port),
 		Handler: http.HandlerFunc(func(writer http.ResponseWriter, httpRequest *http.Request) {
 			request := NewProxyRequestFrom(httpRequest, proxyConfig.Url)
+			printHeader(proxyConfig.Name)
 			printRequest(request, config)
 			response := request.MakeRequest(client)
 			printResponse(response, config)

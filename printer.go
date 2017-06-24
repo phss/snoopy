@@ -5,8 +5,13 @@ import (
 	"github.com/fatih/color"
 )
 
-func printRequest(request ProxyRequest, config Config) {
+func printHeader(name string) {
 	fmt.Println("---")
+	color.Red(name)
+	fmt.Println("")
+}
+
+func printRequest(request ProxyRequest, config Config) {
 	color.Blue("Request")
 	color.Green("%s %s -> %s", request.Method, request.Path, request.ProxiedUrl())
 	printHeaders(request.Headers)

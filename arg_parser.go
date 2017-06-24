@@ -12,6 +12,7 @@ type Config struct {
 }
 
 type ProxyConfig struct {
+	Name string `yaml:"name"`
 	Port int    `yaml:"port"`
 	Url  string `yaml:"url"`
 }
@@ -20,6 +21,7 @@ func parseConfigOptions() Config {
 	showBody := flag.Bool("showBody", false, "shows the request and response bodies")
 	port := flag.Int("port", 8080, "proxy server port")
 	url := flag.String("url", "http://www.example.com", "proxied url")
+	name := flag.String("name", "default", "useful for logging")
 	file := flag.String("file", "", "configuration file")
 	flag.Parse()
 
@@ -41,6 +43,7 @@ func parseConfigOptions() Config {
 			ShowBody: *showBody,
 			ProxyConfigs: []ProxyConfig{
 				ProxyConfig{
+					Name: *name,
 					Port: *port,
 					Url:  *url,
 				},
