@@ -19,6 +19,12 @@ type ProxyRequest struct {
 	ProxiedHost string
 }
 
+type ProxyResponse struct {
+	Status  string
+	Headers []ProxyHeader
+	Body    []byte
+}
+
 func NewProxyRequestFrom(httpRequest *http.Request, proxiedHost string) ProxyRequest {
 	body, _ := ioutil.ReadAll(httpRequest.Body)
 	headers := make([]ProxyHeader, 0)
@@ -43,4 +49,19 @@ func (request *ProxyRequest) ProxiedUrl() string {
 func (request *ProxyRequest) NewProxiedHttpRequest() *http.Request {
 	httpRequest, _ := http.NewRequest(request.Method, request.ProxiedUrl(), bytes.NewReader(request.Body))
 	return httpRequest
+}
+
+func NewProxyResponseFrom(httpResponse *http.Response) ProxyResponse {
+	body, _ := ioutil.ReadAll(httpResponse.Body)
+	headers := make([]ProxyHeader, 0)
+	for name, values := range httpResponse.Header {
+		for _, value := range values {
+			headers = append(headers, ProxyHeader{name, value})
+		}
+	}
+	return ProxyResponse{
+		Status:  httpResponse.Status,
+		Body:    body,
+		Headers: headers,
+	}
 }
