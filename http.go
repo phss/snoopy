@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 )
@@ -35,6 +36,11 @@ func NewProxyRequestFrom(httpRequest *http.Request, proxiedHost string) ProxyReq
 	}
 }
 
-func (request ProxyRequest) ProxiedUrl() string {
+func (request *ProxyRequest) ProxiedUrl() string {
 	return request.ProxiedHost + request.Path
+}
+
+func (request *ProxyRequest) NewProxiedHttpRequest() *http.Request {
+	httpRequest, _ := http.NewRequest(request.Method, request.ProxiedUrl(), bytes.NewReader(request.Body))
+	return httpRequest
 }

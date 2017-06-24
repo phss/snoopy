@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -54,8 +53,7 @@ func returnProxyResponse(resp *http.Response, body string, w http.ResponseWriter
 
 func makeProxyRequest(request ProxyRequest) (*http.Response, string) {
 	client := http.Client{}
-	proxyRequest, _ := http.NewRequest(request.Method, request.ProxiedUrl(), bytes.NewReader(request.Body))
-	resp, _ := client.Do(proxyRequest)
+	resp, _ := client.Do(request.NewProxiedHttpRequest())
 	body, _ := ioutil.ReadAll(resp.Body)
 	return resp, string(body)
 }
