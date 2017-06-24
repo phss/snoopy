@@ -9,7 +9,7 @@ import (
 func printRequest(proxyRequest ProxyRequest, config Config) {
 	fmt.Println("---")
 	color.Blue("Request")
-	color.Green("%s %s -> %s", proxyRequest.Method, proxyRequest.Path, proxiedUrl(proxyRequest))
+	color.Green("%s %s -> %s", proxyRequest.Method, proxyRequest.Path, proxyRequest.ProxiedUrl())
 	for _, header := range proxyRequest.Headers {
 		fmt.Printf("%s: %s\n", color.CyanString(header.Name), color.YellowString(header.Value))
 	}
