@@ -3,23 +3,19 @@ package main
 import (
 	"fmt"
 	"github.com/fatih/color"
-	"io/ioutil"
 	"net/http"
 )
 
-func printRequest(proxiedUrl string, r *http.Request, showBody bool) {
+func printRequest(proxyRequest ProxyRequest, config Config) {
 	fmt.Println("---")
 	color.Blue("Request")
-	color.Green("%s %s -> %s", r.Method, r.URL.Path, proxiedUrl)
-	for name, values := range r.Header {
-		for _, value := range values {
-			fmt.Printf("%s: %s\n", color.CyanString(name), color.YellowString(value))
-		}
+	color.Green("%s %s -> %s", proxyRequest.Method, proxyRequest.Path, proxiedUrl(proxyRequest))
+	for _, header := range proxyRequest.Headers {
+		fmt.Printf("%s: %s\n", color.CyanString(header.Name), color.YellowString(header.Value))
 	}
-	if showBody {
+	if config.ShowBody {
 		fmt.Printf("%s:\n", color.CyanString("Body"))
-		body, _ := ioutil.ReadAll(r.Body)
-		fmt.Println(string(body))
+		fmt.Println(string(proxyRequest.Body))
 	}
 	fmt.Println("")
 }

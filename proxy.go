@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -24,15 +25,49 @@ func main() {
 	wg.Wait()
 }
 
+type ProxyHeader struct {
+	Name  string
+	Value string
+}
+
+type ProxyRequest struct {
+	Method      string
+	Path        string
+	Headers     []ProxyHeader
+	Body        []byte
+	ProxiedHost string
+}
+
+func proxyRequestFromHttpRequest(httpRequest *http.Request, proxyiedHost string) ProxyRequest {
+	body, _ := ioutil.ReadAll(httpRequest.Body)
+	headers := make([]ProxyHeader, 0)
+	for name, values := range httpRequest.Header {
+		for _, value := range values {
+			headers = append(headers, ProxyHeader{name, value})
+		}
+	}
+	return ProxyRequest{
+		Method:      httpRequest.Method,
+		Path:        httpRequest.URL.Path,
+		Body:        body,
+		Headers:     headers,
+		ProxiedHost: proxyiedHost,
+	}
+}
+
+func proxiedUrl(request ProxyRequest) string {
+	return request.ProxiedHost + request.Path
+}
+
 func proxy(proxyConfig ProxyConfig, config Config) {
 	fmt.Printf("Proxying for %s on http://localhost:%d \n", proxyConfig.Url, proxyConfig.Port)
 
 	server := http.Server{
 		Addr: fmt.Sprintf(":%d", proxyConfig.Port),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			proxiedUrl := proxyConfig.Url + r.URL.Path
-			printRequest(proxiedUrl, r, config.ShowBody)
-			resp, body := makeProxyRequest(proxiedUrl, r)
+			proxyRequest := proxyRequestFromHttpRequest(r, proxyConfig.Url)
+			printRequest(proxyRequest, config)
+			resp, body := makeProxyRequest(proxyRequest)
 			printResponse(resp, body, config.ShowBody)
 			returnProxyResponse(resp, body, w)
 		}),
@@ -51,9 +86,9 @@ func returnProxyResponse(resp *http.Response, body string, w http.ResponseWriter
 	fmt.Fprintf(w, "%s", body)
 }
 
-func makeProxyRequest(proxiedUrl string, r *http.Request) (*http.Response, string) {
+func makeProxyRequest(request ProxyRequest) (*http.Response, string) {
 	client := http.Client{}
-	proxyRequest, _ := http.NewRequest(r.Method, proxiedUrl, r.Body)
+	proxyRequest, _ := http.NewRequest(request.Method, proxiedUrl(request), bytes.NewReader(request.Body))
 	resp, _ := client.Do(proxyRequest)
 	body, _ := ioutil.ReadAll(resp.Body)
 	return resp, string(body)
