@@ -25,31 +25,17 @@ func main() {
 
 func proxy(proxyConfig ProxyConfig, config Config) {
 	fmt.Printf("Proxying for %s on http://localhost:%d \n", proxyConfig.Url, proxyConfig.Port)
+	client := http.Client{}
 
 	server := http.Server{
 		Addr: fmt.Sprintf(":%d", proxyConfig.Port),
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			proxyRequest := NewProxyRequestFrom(r, proxyConfig.Url)
-			printRequest(proxyRequest, config)
-			response := makeProxyRequest(proxyRequest)
+		Handler: http.HandlerFunc(func(writer http.ResponseWriter, httpRequest *http.Request) {
+			request := NewProxyRequestFrom(httpRequest, proxyConfig.Url)
+			printRequest(request, config)
+			response := request.MakeRequest(client)
 			printResponse(response, config)
-			returnProxyResponse(response, w)
+			response.WriteResponse(writer)
 		}),
 	}
 	log.Fatal(server.ListenAndServe())
-}
-
-func returnProxyResponse(response ProxyResponse, w http.ResponseWriter) {
-	for _, header := range response.Headers {
-		w.Header().Add(header.Name, header.Value)
-	}
-
-	w.WriteHeader(response.StatusCode)
-	fmt.Fprintf(w, "%s", response.Body)
-}
-
-func makeProxyRequest(request ProxyRequest) ProxyResponse {
-	client := http.Client{}
-	resp, _ := client.Do(request.NewProxiedHttpRequest())
-	return NewProxyResponseFrom(resp)
 }
